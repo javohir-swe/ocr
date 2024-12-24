@@ -1,5 +1,6 @@
 import os
 from ocr.id_card import get_passport_data
+from ocr.passport import get_data_from_passport
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -33,7 +34,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if query.data == "id_card":
         await query.edit_message_text("ID Card uchun QR kodning rasmini yuboring.")
     elif query.data == "passport":
-        await query.edit_message_text("Passport uchun rasm yuboring.")
+        await query.edit_message_text("Passport uchun rasmini yuboring.")
 
 # Rasm yuborilganda handler
 async def image_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -59,7 +60,12 @@ async def image_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         except Exception as e:
             await update.message.reply_text(f"QR kodni o'qishda xatolik: {e}")
     elif context.user_data["doc_type"] == "passport":
-        await update.message.reply_text("Passport uchun rasm yuborish qabul qilindi.")
+        # Passport rasmini qayta ishlash
+        try:
+            result = get_data_from_passport(file_path)
+            await update.message.reply_text(f"Passportdan olingan ma'lumotlar:\n{result}")
+        except Exception as e:
+            await update.message.reply_text(f"Passportni o'qishda xatolik: {e}")
 
     # Faylni o'chirish
     os.remove(file_path)

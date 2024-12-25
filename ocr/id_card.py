@@ -1,5 +1,6 @@
 from datetime import datetime
 import re
+
 import pprint
 
 def get_birth_date(data):
@@ -107,25 +108,42 @@ def get_passport_data(data):
 # =============== Get FullName data =============== #
             expiry_date = get_expiry_date(data=cleaned_data)
 
-# =============== Get FullName data =============== #
+# =============== Get Gender data =============== #
             gender = extract_gender(data=cleaned_data)
+
+# ================= Get Citizenship ================= #
+            citizenship = cleaned_data[2:5]
+
             pass_last_name = last_name.title()
             pass_first_name = first_name.title()
             pass_date_of_birth = birth_date
             pass_passport_id = passport
             pass_expiry_date = expiry_date
             pass_gender = gender
+            pass_citizenship = citizenship
+
             print_data = f"""\n\n\nLastname: {pass_last_name}\nFirstname: {pass_first_name}\nDate of birth: {pass_date_of_birth}\nPassport ID: {pass_passport_id}\nExpiry date: {pass_expiry_date}\nGender: {pass_gender}\n\n\n"""
             print(print_data)
-            result_data = {
-                "last_name": last_name.title(),
-                "first_name": first_name.title(),
-                "date_of_birth": birth_date,
-                "passport_id": passport,
-                "expiry_date": expiry_date,
-                "sex": gender,
+            # result_data = {
+            #     "last_name": last_name.title(),
+            #     "first_name": first_name.title(),
+            #     "date_of_birth": birth_date,
+            #     "passport_id": passport,
+            #     "expiry_date": expiry_date,
+            #     "sex": gender,
+            # }
+
+
+            return {
+                "pass_last_name": pass_last_name,
+                "pass_first_name": pass_first_name,
+                "pass_date_of_birth": pass_date_of_birth,
+                "pass_passport_id": pass_passport_id,
+                "pass_expiry_date": pass_expiry_date,
+                "pass_gender": pass_gender,
+                "pass_citizenship": pass_citizenship,
             }
-            return print_data
+
         else:
             return "Berilayotgan ma'lumot noto'g'ri bo'lishi mumkin!\n\nIltimos ma'lumot sifatini yaxshilab qayta urinib ko'ring."
 

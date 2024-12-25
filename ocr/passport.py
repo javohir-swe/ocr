@@ -20,12 +20,13 @@ def save_file_to_media(file_path):
 
     shutil.copy(file_path, new_file_path)
     # print(f"File saved to {new_file_path}")
-    return new_file_path
+    return file_path
 
 
 def get_data_from_passport(file_path):
 
-    saved_file_path = save_file_to_media(file_path)
+    # saved_file_path = save_file_to_media(file_path)
+    saved_file_path = file_path
     """
     Tasvir ichidagi MRZ matnlarini OCR yordamida o'qish.
     """
@@ -36,6 +37,10 @@ def get_data_from_passport(file_path):
         text = pytesseract.image_to_string(image)
         clean_text = get_clean_data(text)
 
+# ================= Get Citizenship ================= #
+        citizenship = clean_text[2:5]
+        # print(citizenship)
+
 # ================= Get FullName ================= #
         name_pattern = r"[A-Z]{2}[A-Z]+<<[A-Z]+"
         name_match = re.search(name_pattern, clean_text)
@@ -43,32 +48,38 @@ def get_data_from_passport(file_path):
             name_parts = name_match.group().split("<<")
             last_name = name_parts[0][3:]
             first_name = name_parts[1].replace("<", " ") if len(name_parts) > 1 else ""
-            print(f"last_name: {last_name.title()}")
-            print(f"first_name: {first_name.title()}")
+            # print(f"last_name: {last_name.title()}")
+            # print(f"first_name: {first_name.title()}")
         else:
             return "Ism Familiyani topishda muammo bo'ldi!!!"
 
 # =============== Get Passport data =============== #
-        passport_number_pattern = r"[A-Z]{2}[0-9]{7}"
+        passport_number_pattern = r"[A4-Z]{2}[0-9]{7}"
 
         match = re.search(passport_number_pattern, clean_text)
         if match:
             passport_number = match.group()  # Topilgan passport raqamini olamiz
-            passport_id = passport_number
+            passport_number_corrected = re.sub(r"4", "A", passport_number)
+            passport_id = passport_number_corrected
         else:
             passport_id = ""
-        print(f"passport_id: {passport_id}")
+        # print(f"passport_id: {passport_id}")
 
 # =============== Get Birth Date =============== #
-        birth_date_pattern = r"[0-9]{2}[A-Z]{3}[0-9]{6}"  # 2 raqam + 3 harf + 6 raqam
+        birth_date_pattern = r"[0-9]{7}[M|m|H|h|F|f]"  # 6 raqam + "M", "H", yoki "F"
         birth_date_match = re.search(birth_date_pattern, clean_text)
         if birth_date_match:
-            birth_date = birth_date_match.group()[-6:]  # Oxirgi 6 ta raqamni olamiz
+            # 6 ta raqam va gender harfiga mos kelgan qismni ajratib olish
+            birth_date_with_gender = birth_date_match.group()[:-2]  # "M", "H", yoki "F" ni chiqarib tashlaymiz
+            # print(birth_date_with_gender)
+            birth_date = birth_date_with_gender[-6:]  # Faqat 6 ta raqamni olish
+            # print(birth_date)
+
             current_year = datetime.now().year
             current_century = current_year // 100  # Masalan, 2024 -> 20
             current_year_last_two = current_year % 100  # Masalan, 2024 -> 24
 
-            # Yilni 6 belgi ichidan olish
+            # Yilni 6 ta belgi ichidan olish
             birth_year_last_two = int(birth_date[:2])
             birth_month = birth_date[2:4]
             birth_day = birth_date[4:6]
@@ -78,26 +89,27 @@ def get_data_from_passport(file_path):
                 birth_year = (current_century - 1) * 100 + birth_year_last_two
             else:
                 birth_year = current_century * 100 + birth_year_last_two
+
             # To'liq sana formatida natija
             birth_date = f"{birth_year:04d}-{birth_month}-{birth_day}"
-
-            # print(f"Date of birth: {birth_date}")
+            # print(f"Tug'ilgan sana: {birth_date}")
         else:
-            birth_date = ""
+            birth_date = ''
             print("Tug'ilgan sana topilmadi.")
 
 # =============== Get Gender =============== #
-        gender_pattern = r"[0-9]{6}(M|F)"  # 6 raqam + "M" yoki "F"
+        gender_pattern = r"[0-9]{6}(M|m|H|h|F|f)"  # 6 raqam + "M" yoki "F"
         gender_match = re.search(gender_pattern, clean_text)
         if gender_match:
-            gender = "Male" if gender_match.group()[-1] == "M" else "Female"
+            gender_code = gender_match.group()[-1]
+            gender = "Male" if gender_code in ["M", "H", "m", "h"] else "Female"
             # print(f"Gender: {gender}")
         else:
             gender = ""
             print("Gender topilmadi.")
 
-# =============== Get Expiry Date =============== #
-        expiry_date_pattern = r"[0-9]{6}[M|F][0-9]{6}"  # Amal qilish sanasi yaqinidagi tuzilma
+        # =============== Get Expiry Date =============== #
+        expiry_date_pattern = r"[0-9]{6}[M|m|H|h|F|f][0-9]{6}"  # Amal qilish sanasi yaqinidagi tuzilma
         expiry_date_match = re.search(expiry_date_pattern, clean_text)
         if expiry_date_match:
             expiry_date_raw = expiry_date_match.group()[-6:]  # Oxirgi 6 raqamni olish
@@ -130,14 +142,23 @@ def get_data_from_passport(file_path):
         pass_passport_id = passport_id
         pass_expiry_date = result_expiry_date
         pass_gender = gender
-        print_data = f"""\n\n\nLastname: {pass_last_name}\nFirstname: {pass_first_name}\nDate of birth: {pass_date_of_birth}\nPassport ID: {pass_passport_id}\nExpiry date: {pass_expiry_date}\nGender: {pass_gender}\n\n\n"""
+        pass_citizenship = citizenship
+        print_data = f"""\n\n\nLastname: {pass_last_name}\nFirstname: {pass_first_name}\nDate of birth: {pass_date_of_birth}\nPassport ID: {pass_passport_id}\nExpiry date: {pass_expiry_date}\nGender: {pass_gender}\ncitizenship: {pass_citizenship}\n\n\n"""
 
+        print("\n\n\n\n")
         print(print_data)
-        print("\n\n\n\n")
         # print(text.strip())
-        print(clean_text)
+        # print(clean_text)
         print("\n\n\n\n")
-        return print_data
+        return {
+            "pass_last_name": pass_last_name,
+            "pass_first_name": pass_first_name,
+            "pass_date_of_birth": pass_date_of_birth,
+            "pass_passport_id": pass_passport_id,
+            "pass_expiry_date": pass_expiry_date,
+            "pass_gender": pass_gender,
+            "pass_citizenship": pass_citizenship,
+        }
     except Exception as e:
         print(f"Xato yuz berdi: {e}")
 
@@ -154,13 +175,15 @@ def get_clean_data(text):
     MRZ (Machine-Readable Zone) qismini matndan ajratib olish.
     """
     # MRZ qismi uchun regex
-    mrz_pattern = r"P<UZB.*"
+    # mrz_pattern = r"P<UZB.*"
+    mrz_pattern = r"P<[A-Z]{3}.*"
 
     # Matnni tozalash (keraksiz bo'shliqlarni olib tashlash)
     cleaned_data = text.replace('\n', '').replace(' ', '')
 
     # MRZ qismni topish uchun regexni qo'llash
     mrz_match = re.search(mrz_pattern, cleaned_data)
+    print(mrz_match.group())
 
     # MRZ topilgan bo'lsa qaytarish
     if mrz_match:

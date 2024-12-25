@@ -1,4 +1,5 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from ocr.id_card import get_passport_data
@@ -7,6 +8,22 @@ from ocr.qr_reader import decode_qr_code
 
 
 app = FastAPI()
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://127.0.0.1:40675", "http://localhost:40675", "https://movo.uz"],  # Frontend’ning to‘liq URL'ini qo‘shing
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.middleware("http")
+async def log_requests(request, call_next):
+    print(f"{request.method} {request.url}")
+    response = await call_next(request)
+    return response
 
 @app.post("/api/v1/passport")
 async def upload_image(file: UploadFile = File(...)):
